@@ -8,7 +8,6 @@ import (
 	"go/token"
 	"go/types"
 	"log"
-	"strings"
 )
 
 type Lookup struct {
@@ -17,10 +16,22 @@ type Lookup struct {
 	comment *ast.CommentGroup
 }
 
+type MyEnum string
+const (
+	White MyEnum = "white"
+	Blue MyEnum = "blue"
+)
+
 const hello = `
 package main
 
 import "fmt"
+
+type MyEnum string
+const (
+   White MyEnum = "white"
+   Blue MyEnum = "blue"
+)
 
 // append
 func main() {
@@ -45,22 +56,25 @@ func main() {
 	}
 
 	conf := types.Config{Importer: importer.Default()}
-	pkg, err := conf.Check("cmd/hello", fset, []*ast.File{f}, nil)
+	_, err = conf.Check("cmd/hello", fset, []*ast.File{f}, nil)
 	if err != nil {
 		log.Fatal(err) // type error
 	}
 
-	// Each comment contains a name.
-	// Look up that name in the innermost scope enclosing the comment.
-	for _, comment := range f.Comments {
-		pos := comment.Pos()
-		name := strings.TrimSpace(comment.Text())
-		fmt.Printf("At %s,\t%q = ", fset.Position(pos), name)
-		inner := pkg.Scope().Innermost(pos)
-		if _, obj := inner.LookupParent(name, pos); obj != nil {
-			fmt.Println(obj)
-		} else {
-			fmt.Println("not found")
+	for _, d := range f.Decls {
+		if gd, ok := d.(*ast.GenDecl); ok {
+			if gd.Tok == token.CONST {
+				for _, s := range gd.Specs {
+					if vs, ok := s.(*ast.ValueSpec); ok {
+						for _, name := range vs.Names {
+							fmt.Printf("At %s,\t%q | \t%v\n", fset.Position(name.Pos()), name.Name, vs.Type)
+						}
+					}
+				}
+
+				pos := gd.Pos()
+				fmt.Printf("At %s,\t%q = ", fset.Position(pos), gd.Tok)
+			}
 		}
 	}
 }
