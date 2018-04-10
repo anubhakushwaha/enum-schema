@@ -64,16 +64,15 @@ func main() {
 	for _, d := range f.Decls {
 		if gd, ok := d.(*ast.GenDecl); ok {
 			if gd.Tok == token.CONST {
+				fmt.Printf("At %s,\t%q\n", fset.Position(gd.Pos()), gd.Tok)
+
 				for _, s := range gd.Specs {
 					if vs, ok := s.(*ast.ValueSpec); ok {
 						for _, name := range vs.Names {
-							fmt.Printf("At %s,\t%q | \t%v\n", fset.Position(name.Pos()), name.Name, vs.Type)
+							fmt.Printf("At %s,\t%q\t%v\n", fset.Position(name.Pos()), name.Name, vs.Type.(*ast.Ident).Name)
 						}
 					}
 				}
-
-				pos := gd.Pos()
-				fmt.Printf("At %s,\t%q = ", fset.Position(pos), gd.Tok)
 			}
 		}
 	}
